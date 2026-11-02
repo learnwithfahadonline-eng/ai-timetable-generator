@@ -1,0 +1,31 @@
+name: Build Next.js
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Build Next.js
+        run: npm run build
+        env:
+          OPENAI_API_KEY: build-placeholder-not-a-real-key
+          GOOGLE_CLIENT_ID: build-placeholder
+          GOOGLE_CLIENT_SECRET: build-placeholder
+          GOOGLE_REDIRECT_URI: http://localhost:3000/api/google/callback
+          COOKIE_SECRET: build-placeholder-secret-at-least-32-characters

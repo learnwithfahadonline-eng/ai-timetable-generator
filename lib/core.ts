@@ -1,0 +1,9 @@
+import { z } from 'zod';
+export const requestSchema=z.object({topics:z.array(z.string().min(1).max(80)).min(1).max(20),days:z.array(z.number().int().min(0).max(6)).min(1).max(7),start:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),end:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),minutes:z.number().int().min(15).max(180),breakMinutes:z.number().int().min(0).max(60),timezone:z.string().min(1).max(100),weekStart:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
+export const slotSchema=z.object({date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),start:z.string().regex(/^\d{2}:\d{2}$/),end:z.string().regex(/^\d{2}:\d{2}$/),title:z.string().min(1).max(120)});
+export const slotsSchema=z.array(slotSchema).max(150);
+export type Slot=z.infer<typeof slotSchema>;
+export const minutes=(s:string)=>Number(s.slice(0,2))*60+Number(s.slice(3));
+export const hhmm=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
+export function datesOfWeek(monday:string,days:number[]){const d=new Date(`${monday}T12:00:00Z`);if(Number.isNaN(d.getTime())||d.getUTCDay()!==1)throw Error('weekStart must be a Monday');return days.map(day=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+day);return x.toISOString().slice(0,10)});}
+export function validateSlots(slots:Slot[],input:z.infer<typeof requestSchema>){const allowed=new Set(datesOfWeek(input.weekStart,input.days));const grouped=new Map<string,Slot[]>();for(const s of slots){if(!allowed.has(s.date)||minutes(s.start)<minutes(input.start)||minutes(s.end)>minutes(input.end)||minutes(s.end)-minutes(s.start)!==input.minutes)throw Error('AI returned an invalid slot');grouped.set(s.date,[...(grouped.get(s.date)||[]),s]);}for(const items of grouped.values()){items.sort((a,b)=>a.start.localeCompare(b.start));for(let i=1;i<items.length;i++)if(minutes(items[i].start)-minutes(items[i-1].end)<input.breakMinutes)throw Error('AI returned overlapping sessions');}}
